@@ -1,54 +1,30 @@
-# React + TypeScript + Vite
+# 🛠️ Sistema de Agendamento de Vistorias
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Este projeto tem como objetivo gerenciar e automatizar o agendamento de vistorias em equipamentos, respeitando regras específicas de operação e oferecendo controle e personalização para cada tipo de equipamento.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## ✨ Funcionalidades Principais
 
-## Expanding the ESLint configuration
+- **Cadastro de Equipamentos**  
+  Gerencie os equipamentos que farão parte das vistorias de forma prática e eficiente.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- **Checklists Personalizados**  
+  Crie checklists específicos para cada equipamento, garantindo que todas as etapas da vistoria sejam seguidas corretamente.
 
-```js
-export default tseslint.config({
-  extends: [
-    // Remove ...tseslint.configs.recommended and replace with this
-    ...tseslint.configs.recommendedTypeChecked,
-    // Alternatively, use this for stricter rules
-    ...tseslint.configs.strictTypeChecked,
-    // Optionally, add this for stylistic rules
-    ...tseslint.configs.stylisticTypeChecked,
-  ],
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
-```
+- **Agendamento Automático**  
+  O sistema agenda vistorias automaticamente com base nas seguintes regras:
+  - ✅ Máximo de **6 horas por dia** em vistorias
+  - ✅ Agendamentos apenas em **dias úteis** (segunda a sexta)
+  - ✅ **Não repete equipamentos** na mesma semana
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+- **Visualização do Calendário de Vistorias**  
+  Acompanhe todas as vistorias programadas em um calendário interativo e intuitivo.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+---
 
-export default tseslint.config({
-  plugins: {
-    // Add the react-x and react-dom plugins
-    'react-x': reactX,
-    'react-dom': reactDom,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended typescript rules
-    ...reactX.configs['recommended-typescript'].rules,
-    ...reactDom.configs.recommended.rules,
-  },
-})
-```
+## 🚀 Como Executar o Projeto
+
+1. Clone este repositório:
+   ```bash
+   git clone https://github.com/seu-usuario/nome-do-repo.git
