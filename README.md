@@ -21,10 +21,4 @@ Este projeto tem como objetivo gerenciar e automatizar o agendamento de vistoria
 - **Visualização do Calendário de Vistorias**  
   Acompanhe todas as vistorias programadas em um calendário interativo e intuitivo.
 
----
 
-## 🚀 Como Executar o Projeto
-
-1. Clone este repositório:
-   ```bash
-   git clone https://github.com/seu-usuario/nome-do-repo.git
