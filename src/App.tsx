@@ -2,7 +2,7 @@ import './App.css'
 import { BrowserRouter, Link, useLocation } from 'react-router-dom'
 import Rotas from '@/rotas/Rotas'
 import { Toaster } from "@/components/ui/sonner";
-import { CalendarCheck2, Gauge, Tractor, LucideIcon } from "lucide-react"
+import { Gauge, Tractor, LucideIcon, Calendar1, VerifiedIcon , LayoutList } from "lucide-react"
 
 interface NavLinkProps {
   to: string;
@@ -49,8 +49,20 @@ function App() {
             </li>
 
             <li>
-              <NavLink to="/calendario" icon={CalendarCheck2}>
+              <NavLink to="/teste" icon={Calendar1}>
                 Calendário
+              </NavLink>
+            </li>
+
+            <li>
+              <NavLink to="/concluidos" icon={VerifiedIcon}>
+                Vistorias Concluídas
+              </NavLink>
+            </li>
+
+            <li>
+              <NavLink to="/pendentes" icon={LayoutList}>
+                Vistorias Pendentes
               </NavLink>
             </li>
           </ul>

@@ -1,7 +1,7 @@
 import { Routes, Route } from "react-router"
 import Home from "@/pages/Home"
 import AdicionarEqp from "@/pages/AddEquipamentos"
-import Calendario from "@/pages/Calendario"
+import Teste from "@/pages/Teste"
 
 function Rotas(){
     return(
@@ -9,8 +9,7 @@ function Rotas(){
             <Routes>
                 < Route path="/" element={<Home/>} />
                 <Route path="/adicionar-equipamentos" element={< AdicionarEqp/>} />
-                <Route path="/calendario" element={< Calendario/>} />
-
+                <Route path="/teste" element={<Teste/>} />
             </Routes> 
         </>
     )
