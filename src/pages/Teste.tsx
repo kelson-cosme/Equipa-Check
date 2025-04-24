@@ -7,7 +7,7 @@ import { HTML5Backend } from 'react-dnd-html5-backend';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
 import { db } from '@/firebaseConfig/firebaseConfig';
-import { collection, getDocs, doc, updateDoc, setDoc, deleteDoc, Timestamp, getDoc} from "firebase/firestore";
+import { collection, getDocs, doc, updateDoc, setDoc, deleteDoc, Timestamp, getDoc } from "firebase/firestore";
 
 const DnDCalendar = withDragAndDrop(BaseCalendar);
 const localizer = momentLocalizer(moment);
@@ -16,8 +16,8 @@ interface EquipamentoData {
   checkList?: {
     servicos: Servicos[];
   }[];
-  // outras propriedades do seu documento...
 }
+
 interface Servicos {
   servicos: string;
   vistoriado: boolean;
@@ -51,23 +51,23 @@ interface EventActionsProps {
   onUnschedule: (event: CalendarEvent) => void;
 }
 
+// Função modificada para retornar segundos totais
 function parseHoraTotal(horaTotal: string): number {
   const [h, m, s] = horaTotal.split(":").map(Number);
-  return h + m / 60 + s / 3600;
+  return h * 3600 + m * 60 + s;
 }
 
-function formatHoraTotal(horas: number): string {
-  const h = Math.floor(horas);
-  const m = Math.floor((horas - h) * 60);
-  const s = Math.floor(((horas - h) * 60 - m) * 60);
+// Função modificada para receber segundos totais
+function formatHoraTotal(totalSeconds: number): string {
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  const s = totalSeconds % 60;
   return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
 }
-
 
 function isWeekend(date: Date): boolean {
   return date.getDay() === 0 || date.getDay() === 6;
 }
-
 
 function parseDateWithoutTimezone(dateString: string, timeString: string): Date {
   const [year, month, day] = dateString.split('-').map(Number);
@@ -141,23 +141,28 @@ function Teste() {
           let horaTotalString = "00:00:00";
           let horasRestantesString = "00:00:00";
           
+          // Obter hora total
           if (docData.horaTotal) {
-            if (typeof docData.horaTotal.toDate === 'function') {
-              const date = docData.horaTotal.toDate();
-              horaTotalString = date.toTimeString().split(' ')[0];
+            if (typeof docData.horaTotal === 'string') {
+              horaTotalString = docData.horaTotal;
             } else if (docData.horaTotal.seconds) {
               const date = new Date(docData.horaTotal.seconds * 1000);
               horaTotalString = date.toTimeString().split(' ')[0];
             }
           }
           
+          // Obter horas restantes com validação
           if (docData.horasRestantes) {
-            if (typeof docData.horasRestantes.toDate === 'function') {
-              const date = docData.horasRestantes.toDate();
-              horasRestantesString = date.toTimeString().split(' ')[0];
+            if (typeof docData.horasRestantes === 'string') {
+              // Validar se não excede o tempo total
+              const totalSeconds = parseHoraTotal(horaTotalString);
+              const restanteSeconds = parseHoraTotal(docData.horasRestantes);
+              horasRestantesString = formatHoraTotal(Math.min(totalSeconds, restanteSeconds));
             } else if (docData.horasRestantes.seconds) {
               const date = new Date(docData.horasRestantes.seconds * 1000);
-              horasRestantesString = date.toTimeString().split(' ')[0];
+              const restanteSeconds = parseHoraTotal(date.toTimeString().split(' ')[0]);
+              const totalSeconds = parseHoraTotal(horaTotalString);
+              horasRestantesString = formatHoraTotal(Math.min(totalSeconds, restanteSeconds));
             }
           }
   
@@ -182,9 +187,8 @@ function Teste() {
               let horasRestantesString = "00:00:00";
               
               if (checkItem.horaTotal) {
-                if (typeof checkItem.horaTotal.toDate === 'function') {
-                  const date = checkItem.horaTotal.toDate();
-                  horaTotalString = date.toTimeString().split(' ')[0];
+                if (typeof checkItem.horaTotal === 'string') {
+                  horaTotalString = checkItem.horaTotal;
                 } else if (checkItem.horaTotal.seconds) {
                   const date = new Date(checkItem.horaTotal.seconds * 1000);
                   horaTotalString = date.toTimeString().split(' ')[0];
@@ -192,9 +196,8 @@ function Teste() {
               }
               
               if (checkItem.horasRestantes) {
-                if (typeof checkItem.horasRestantes.toDate === 'function') {
-                  const date = checkItem.horasRestantes.toDate();
-                  horasRestantesString = date.toTimeString().split(' ')[0];
+                if (typeof checkItem.horasRestantes === 'string') {
+                  horasRestantesString = checkItem.horasRestantes;
                 } else if (checkItem.horasRestantes.seconds) {
                   const date = new Date(checkItem.horasRestantes.seconds * 1000);
                   horasRestantesString = date.toTimeString().split(' ')[0];
@@ -222,9 +225,8 @@ function Teste() {
                   let horasRestantesString = "00:00:00";
                   
                   if (servico.horaTotal) {
-                    if (typeof servico.horaTotal.toDate === 'function') {
-                      const date = servico.horaTotal.toDate();
-                      horaTotalString = date.toTimeString().split(' ')[0];
+                    if (typeof servico.horaTotal === 'string') {
+                      horaTotalString = servico.horaTotal;
                     } else if (servico.horaTotal.seconds) {
                       const date = new Date(servico.horaTotal.seconds * 1000);
                       horaTotalString = date.toTimeString().split(' ')[0];
@@ -232,9 +234,8 @@ function Teste() {
                   }
                   
                   if (servico.horasRestantes) {
-                    if (typeof servico.horasRestantes.toDate === 'function') {
-                      const date = servico.horasRestantes.toDate();
-                      horasRestantesString = date.toTimeString().split(' ')[0];
+                    if (typeof servico.horasRestantes === 'string') {
+                      horasRestantesString = servico.horasRestantes;
                     } else if (servico.horasRestantes.seconds) {
                       const date = new Date(servico.horasRestantes.seconds * 1000);
                       horasRestantesString = date.toTimeString().split(' ')[0];
@@ -303,7 +304,7 @@ function Teste() {
     } else {
       setSelectedDate(null);
       setSelectedTime('08:00');
-      const horasRestantes = parseHoraTotal(service.horasRestantes);
+      const horasRestantes = parseHoraTotal(service.horasRestantes) / 3600; // Converter para horas
       setDuration(Math.min(6, horasRestantes));
     }
     setShowModal(true);
@@ -312,10 +313,25 @@ function Teste() {
 
   const handleSchedule = async () => {
     if (!selectedService || !selectedDate) return;
-
+  
     const dateStr = selectedDate.toISOString().split('T')[0];
     const correctedDate = parseDateWithoutTimezone(dateStr, selectedTime);
-
+  
+    // Validações adicionais
+    const horasTotais = parseHoraTotal(selectedService.horaTotal);
+    const horasAtuais = parseHoraTotal(selectedService.horasRestantes);
+    const horasSolicitadas = duration * 3600; // Converter horas para segundos
+  
+    if (horasAtuais > horasTotais) {
+      setValidationError("Tempo restante não pode ser maior que o tempo total");
+      return;
+    }
+  
+    if (horasSolicitadas > horasAtuais) {
+      setValidationError(`Tempo solicitado (${duration}h) excede o tempo restante (${formatHoraTotal(horasAtuais)})`);
+      return;
+    }
+  
     const errors = validateSchedule(selectedService, correctedDate, duration);
     if (errors) {
       setValidationError(errors);
@@ -336,17 +352,13 @@ function Teste() {
 
     try {
       const horasAtuais = parseHoraTotal(selectedService.horasRestantes);
-      const novasHoras = Math.max(0, horasAtuais - duration);
+      const novasHoras = Math.max(0, horasAtuais - duration * 3600); // Converter horas para segundos
       const novasHorasString = formatHoraTotal(novasHoras);
       
-      const [h, m, s] = novasHorasString.split(':').map(Number);
-      const date = new Date();
-      date.setHours(h, m, s);
-      const timestamp = Timestamp.fromDate(date);
-
+      // Atualizar no Firestore como string diretamente
       const docRef = doc(db, "equipamentos", selectedService.id);
       await updateDoc(docRef, {
-        horasRestantes: timestamp
+        horasRestantes: novasHorasString
       });
 
       const eventId = await saveEventToFirebase(newEvent);
@@ -380,17 +392,13 @@ function Teste() {
       const duration = (event.end.getTime() - event.start.getTime()) / (1000 * 60 * 60);
       const horasAtuais = parseHoraTotal(service.horasRestantes);
       const horasTotais = parseHoraTotal(service.horaTotal);
-      const novasHoras = Math.min(horasTotais, horasAtuais + duration);
+      const novasHoras = Math.min(horasTotais, horasAtuais + duration * 3600); // Converter horas para segundos
       const novasHorasString = formatHoraTotal(novasHoras);
       
-      const [h, m, s] = novasHorasString.split(':').map(Number);
-      const date = new Date();
-      date.setHours(h, m, s);
-      const timestamp = Timestamp.fromDate(date);
-
+      // Atualizar no Firestore como string diretamente
       const docRef = doc(db, "equipamentos", service.id);
       await updateDoc(docRef, {
-        horasRestantes: timestamp
+        horasRestantes: novasHorasString
       });
 
       if (event.id) {
@@ -504,8 +512,7 @@ function Teste() {
         const novasHorasString = formatHoraTotal(novasHoras);
         
         const [h, m, s] = novasHorasString.split(':').map(Number);
-        const date = new Date();
-        date.setHours(h, m, s);
+        const date = new Date(0, 0, 0, h, m, s); // Ano 0 = 1900, mas o Firestore corrige
         const timestamp = Timestamp.fromDate(date);
 
         const docRef = doc(db, "equipamentos", service.id);
@@ -549,12 +556,12 @@ function Teste() {
     const service = data.find(item => item.id === event.serviceId);
     const progress = service ? 
       (1 - parseHoraTotal(service.horasRestantes) / parseHoraTotal(service.horaTotal)) * 100 : 0;
-    
+    console.log
     return {
       style: {
         backgroundColor: colors[event.resource] || colors.default,
         color: 'white',
-        borderRadius: '0.5rem',
+        borderRadius: '0.2rem',
         padding: '4px',
         border: 'none',
         fontSize: '0.9rem',
@@ -668,9 +675,8 @@ function Teste() {
       </div>
     );
   }
-
   return (
-    <div className="w-full px-4 py-6 bg-gray-50 min-h-screen">
+<div className="w-full px-4 py-6 bg-gray-50 min-h-screen">
       <div className="bg-white rounded-2xl shadow-lg p-4">
         <div className="mb-4 flex justify-between items-center">
           <h2 className="text-xl font-semibold text-gray-800">Agendamento de Manutenção</h2>
@@ -767,53 +773,54 @@ function Teste() {
       )}
 
 
-{showModalChecklist && (
-  <div className="fixed w-1/2 m-auto inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-    <div className="modal-content bg-red-500 p-10">
-      <h2 className="text-xl font-bold mb-4">Checklist de Serviços</h2>
-      <button 
-        onClick={() => setShowModalChecklist(false)}
-        className="mb-4 px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded"
-      >
-        Fechar
-      </button>
+      {showModalChecklist && (
+        <div className="fixed w-1/2 m-auto inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="modal-content bg-red-500 p-10">
+            <h2 className="text-xl font-bold mb-4">Checklist de Serviços</h2>
+            <button 
+              onClick={() => setShowModalChecklist(false)}
+              className="mb-4 px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded"
+            >
+              Fechar
+            </button>
 
-      {loading ? (
-        <div className="text-center">Carregando checklist...</div>
-      ) : (
-        <>
-          {!equipamentoData || !equipamentoData.checkList ? (
-            <div className="text-red-500">Nenhum checklist disponível</div>
-          ) : (
-            // Acesso direto ao primeiro checklist (índice 0) e seus serviços
-            equipamentoData.checkList[0]?.servicos?.length > 0 ? (
-              <div className="checklist-section mb-6">
-                <h3 className="font-semibold mb-2">Checklist</h3>
-                {equipamentoData.checkList[0].servicos.map((servico, index) => (
-                  <div key={`servico-${index}`} className="service-item mb-2">
-                    <label className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={servico?.vistoriado || false}
-                        onChange={(e) => handleCheckboxChange(0, index, e.target.checked)}
-                        className="h-4 w-4"
-                      />
-                      <span className={servico?.vistoriado ? "line-through" : ""}>
-                        {servico?.servicos || `Serviço ${index + 1}`}
-                      </span>
-                    </label>
-                  </div>
-                ))}
-              </div>
+            {loading ? (
+              <div className="text-center">Carregando checklist...</div>
             ) : (
-              <div className="text-gray-500">Nenhum serviço neste checklist</div>
-            )
-          )}
-        </>
+              <>
+                {!equipamentoData || !equipamentoData.checkList ? (
+                  <div className="text-red-500">Nenhum checklist disponível</div>
+                ) : (
+                  // Acesso direto ao primeiro checklist (índice 0) e seus serviços
+                  equipamentoData.checkList[0]?.servicos?.length > 0 ? (
+                    <div className="checklist-section mb-6">
+                      <h3 className="font-semibold mb-2">Checklist</h3>
+                      {equipamentoData.checkList[0].servicos.map((servico, index) => (
+                        <div key={`servico-${index}`} className="service-item mb-2">
+                          <label className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={servico?.vistoriado || false}
+                              onChange={(e) => handleCheckboxChange(0, index, e.target.checked)}
+                              className="h-4 w-4"
+                            />
+                            <span className={servico?.vistoriado ? "line-through" : ""}>
+                              {servico?.servicos || `Serviço ${index + 1}`}
+                            </span>
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-gray-500">Nenhum serviço neste checklist</div>
+                  )
+                )}
+              </>
+            )}
+          </div>
+        </div>
       )}
-    </div>
-  </div>
-)}
+
 
       {showModal && selectedService && (
         <div  className=" fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">

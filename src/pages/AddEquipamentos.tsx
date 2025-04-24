@@ -1,8 +1,8 @@
 import { db } from '@/firebaseConfig/firebaseConfig';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, Timestamp } from 'firebase/firestore';
 import { useState } from 'react';
 import ChecklistCard from '@/components/ChecklistCard';
-import { toast } from "sonner"
+import { toast } from "sonner";
 
 interface Servicos {
   trabalho: string;
@@ -22,69 +22,79 @@ interface Equipamento {
   nomeEquipamento: string;
   periodo: Periodo;
   checkList: Checklist[];
-  horaTotal: Date;
+  tempoTotal: {
+    horas: number;
+    minutos: number;
+  };
 }
 
 function AdicionarEqp() {
-  // Estado para os dados do novo equipamento
   const [novoEquipamento, setNovoEquipamento] = useState<Equipamento>({
     nomeEquipamento: '',
-    periodo: {
-      periodoValor: 0,
-      tipo: 'dia'
-    },
-    checkList: [{
-      servicos: [] // Array vazio inicialmente
-    }],
-    horaTotal: new Date()
+    periodo: { periodoValor: 0, tipo: 'dia' },
+    checkList: [{ servicos: [] }],
+    tempoTotal: { horas: 0, minutos: 0 }
   });
 
-  const [mostrarCard, setMostrarCard] = useState<boolean>(false)
+  const [mostrarCard, setMostrarCard] = useState<boolean>(false);
 
-  const toggleChecklistCard = () => {
-    setMostrarCard(!mostrarCard);
-  };
+  const toggleChecklistCard = () => setMostrarCard(!mostrarCard);
 
-  // Função para adicionar um novo equipamento
   const adicionarEquipamento = async () => {
-    // Validações existentes (nome, checklist, período)
     if (!novoEquipamento.nomeEquipamento.trim()) {
-      toast("Este é o título", {
-        description: "Esta é a descrição",
+      toast("Preencha o nome do equipamento", {
+        description: "O campo nome é obrigatório.",
       });
       return;
     }
-  
+
     try {
+      const dataInicio = new Date();
+      const { horas, minutos } = novoEquipamento.tempoTotal;
+
+      const horaTotalDate = new Date('1970-01-01T00:00:00');
+      horaTotalDate.setHours(horas);
+      horaTotalDate.setMinutes(minutos);
+      horaTotalDate.setSeconds(0);
+      horaTotalDate.setMilliseconds(0);
+
+      const { periodoValor, tipo } = novoEquipamento.periodo;
+
+      const horasRestantes = new Date(dataInicio);
+      if (tipo === 'dia') {
+        horasRestantes.setDate(horasRestantes.getDate() + periodoValor);
+      } else if (tipo === 'semana') {
+        horasRestantes.setDate(horasRestantes.getDate() + (periodoValor * 7));
+      } else if (tipo === 'mes') {
+        horasRestantes.setMonth(horasRestantes.getMonth() + periodoValor);
+      }
+
       await addDoc(collection(db, 'equipamentos'), {
         nomeEquipamento: novoEquipamento.nomeEquipamento,
         periodo: novoEquipamento.periodo,
         checkList: novoEquipamento.checkList,
-        horaTotal: serverTimestamp()
+        horaTotal: Timestamp.fromDate(horaTotalDate),
+        horasRestantes: Timestamp.fromDate(horasRestantes)
       });
-  
-      // Notificação de SUCESSO
+
       toast("Equipamento adicionado ✅", {
         description: `${novoEquipamento.nomeEquipamento} foi cadastrado com sucesso!`,
       });
-  
-      // Reset do formulário
+
       setNovoEquipamento({
         nomeEquipamento: '',
         periodo: { periodoValor: 0, tipo: 'dia' },
         checkList: [{ servicos: [] }],
-        horaTotal: new Date()
+        tempoTotal: { horas: 0, minutos: 0 }
       });
-  
+
     } catch (error) {
-      // Notificação de ERRO
-      toast("Falha no cadastro", {
-        description: `"Ocorreu um erro ao salvar o equipamento" ${novoEquipamento.nomeEquipamento}`,
+      toast("Erro ao cadastrar equipamento", {
+        description: `"Erro ao salvar ${novoEquipamento.nomeEquipamento}"`,
       });
     }
   };
 
-  // Atualiza os campos do formulário
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setNovoEquipamento(prev => ({
@@ -93,11 +103,10 @@ function AdicionarEqp() {
     }));
   };
 
-
   return (
     <div className="p-4 w-[calc(100%-37vh)]">
       <h1 className="text-2xl font-bold mb-4">Adicionar Novo Equipamento</h1>
-      
+
       <div className="mb-4">
         <label className="block mb-2">Nome do Equipamento</label>
         <input
@@ -127,7 +136,7 @@ function AdicionarEqp() {
       </div>
 
       {/* Adicionar checklist */}
-      <div className='mb-4'> 
+      <div className='mb-4'>
         <label className="block mb-2">Adicionar CheckList</label>
         <button 
           onClick={toggleChecklistCard} 
@@ -172,12 +181,47 @@ function AdicionarEqp() {
             }}
           />
         )}
-
-
-
       </div>
 
-      
+      <div className="mb-4">
+        <label className="block mb-2">Duração da Manutenção</label>
+        <div className="flex gap-2">
+          <input
+            type="number"
+            min="0"
+            max="23"
+            value={novoEquipamento.tempoTotal.horas}
+            onChange={(e) =>
+              setNovoEquipamento(prev => ({
+                ...prev,
+                tempoTotal: {
+                  ...prev.tempoTotal,
+                  horas: parseInt(e.target.value)
+                }
+              }))
+            }
+            className="p-2 border rounded w-1/2"
+            placeholder="Horas"
+          />
+          <input
+            type="number"
+            min="0"
+            max="59"
+            value={novoEquipamento.tempoTotal.minutos}
+            onChange={(e) =>
+              setNovoEquipamento(prev => ({
+                ...prev,
+                tempoTotal: {
+                  ...prev.tempoTotal,
+                  minutos: parseInt(e.target.value)
+                }
+              }))
+            }
+            className="p-2 border rounded w-1/2"
+            placeholder="Minutos"
+          />
+        </div>
+      </div>
 
       <div className="mb-4">
         <label className="block mb-2">Tipo de Período</label>
@@ -200,9 +244,11 @@ function AdicionarEqp() {
 
       <button
         onClick={adicionarEquipamento}
-        disabled={!novoEquipamento.nomeEquipamento.trim() || 
-                novoEquipamento.checkList[0].servicos.length === 0 ||
-                novoEquipamento.periodo.periodoValor <= 0}
+        disabled={
+          !novoEquipamento.nomeEquipamento.trim() || 
+          novoEquipamento.checkList[0].servicos.length === 0 ||
+          novoEquipamento.periodo.periodoValor <= 0
+        }
         className={`bg-blue-500 text-white p-2 rounded hover:bg-blue-600 ${
           (!novoEquipamento.nomeEquipamento.trim() || 
           novoEquipamento.checkList[0].servicos.length === 0 ||
