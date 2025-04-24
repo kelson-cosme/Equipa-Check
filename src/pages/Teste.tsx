@@ -7,10 +7,21 @@ import { HTML5Backend } from 'react-dnd-html5-backend';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
 import { db } from '@/firebaseConfig/firebaseConfig';
-import { collection, getDocs, doc, updateDoc, setDoc, deleteDoc, Timestamp } from "firebase/firestore";
+import { collection, getDocs, doc, updateDoc, setDoc, deleteDoc, Timestamp, getDoc} from "firebase/firestore";
 
 const DnDCalendar = withDragAndDrop(BaseCalendar);
 const localizer = momentLocalizer(moment);
+
+interface EquipamentoData {
+  checkList?: {
+    servicos: Servicos[];
+  }[];
+  // outras propriedades do seu documento...
+}
+interface Servicos {
+  servicos: string;
+  vistoriado: boolean;
+}
 
 interface Servico {
   id: string;
@@ -52,35 +63,11 @@ function formatHoraTotal(horas: number): string {
   return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
 }
 
-function addDays(date: Date, days: number): Date {
-  const d = new Date(date);
-  d.setDate(d.getDate() + days);
-  return d;
-}
 
 function isWeekend(date: Date): boolean {
   return date.getDay() === 0 || date.getDay() === 6;
 }
 
-function getNextWeekday(date: Date): Date {
-  let d = new Date(date);
-  while (isWeekend(d)) {
-    d = addDays(d, 1);
-  }
-  return d;
-}
-
-function getBusinessDays(start: Date, daysNeeded: number): Date[] {
-  const days: Date[] = [];
-  let current = new Date(start);
-  while (days.length < daysNeeded) {
-    if (!isWeekend(current)) {
-      days.push(new Date(current));
-    }
-    current = addDays(current, 1);
-  }
-  return days;
-}
 
 function parseDateWithoutTimezone(dateString: string, timeString: string): Date {
   const [year, month, day] = dateString.split('-').map(Number);
@@ -134,6 +121,10 @@ function Teste() {
   const [selectedTime, setSelectedTime] = useState<string>('08:00');
   const [duration, setDuration] = useState<number>(1);
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [showEquipmentSelection, setShowEquipmentSelection] = useState(false);
+  const [showModalChecklist, setShowModalChecklist] = useState(false)
+  const [selectedServiceId, setSelectedServiceId] = useState('');
+  const [equipamentoData, setEquipamentoData] = useState<EquipamentoData | null>(null);
 
   async function getData() {
     try {
@@ -469,6 +460,22 @@ function Teste() {
       return;
     }
     setSelectedDate(slotInfo.start);
+    setShowEquipmentSelection(true);
+  };
+
+  const handleEquipmentSelection = (service: Servico) => {
+    setSelectedService(service);
+    setShowEquipmentSelection(false);
+    
+    const dateStr = selectedDate?.toISOString().split('T')[0] || '';
+    const timeStr = selectedDate?.toTimeString().split(' ')[0].substring(0, 5) || '08:00';
+    const correctedDate = parseDateWithoutTimezone(dateStr, timeStr);
+    
+    setSelectedDate(correctedDate);
+    setSelectedTime(timeStr);
+    const horasRestantes = parseHoraTotal(service.horasRestantes);
+    setDuration(Math.min(6, horasRestantes));
+    
     setShowModal(true);
   };
 
@@ -571,6 +578,69 @@ function Teste() {
     }
   };
 
+  const handleSelectEvent = async (event: any) => {
+    setShowModalChecklist(true);
+    const serviceId = event.serviceId;
+    setSelectedServiceId(serviceId);
+    setLoading(true);
+    
+    try {
+      const docRef = doc(db, "equipamentos", serviceId);
+      const docSnap = await getDoc(docRef);
+      
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        console.log("Dados recebidos do Firebase:", data);
+      
+        // Aqui é onde fazemos o "flatten"
+        setEquipamentoData({
+          ...data,
+          checkList: Array.isArray(data?.checkList)
+            ? data.checkList.map(item => ({
+                ...item,
+                servicos: Array.isArray(item.servicos[0]) ? item.servicos[0] : item.servicos
+              }))
+            : []
+        });
+      
+      } else {
+        console.log("Nenhum documento encontrado com esse ID!");
+        setEquipamentoData({ checkList: [] });
+      }
+    } catch (error) {
+      console.error("Erro ao buscar documento:", error);
+      setEquipamentoData({ checkList: [] });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCheckboxChange = async (checklistIndex: number, servicoIndex: number, newValue: boolean) => {
+    if (!equipamentoData?.checkList || !selectedServiceId) return;
+  
+    try {
+      // Atualiza localmente
+      const updatedChecklist = [...equipamentoData.checkList];
+      updatedChecklist[checklistIndex].servicos[servicoIndex].vistoriado = newValue;
+  
+      // Atualiza local no estado
+      setEquipamentoData({
+        ...equipamentoData,
+        checkList: updatedChecklist
+      });
+  
+      // Atualiza o documento inteiro no Firebase
+      const docRef = doc(db, "equipamentos", selectedServiceId);
+      await updateDoc(docRef, {
+        checkList: updatedChecklist
+      });
+  
+    } catch (error) {
+      console.error("Erro ao atualizar serviço:", error);
+    }
+  };
+  
+
   if (loading) {
     return (
       <div className="w-full px-4 py-6 bg-gray-50 min-h-screen flex items-center justify-center">
@@ -604,26 +674,7 @@ function Teste() {
       <div className="bg-white rounded-2xl shadow-lg p-4">
         <div className="mb-4 flex justify-between items-center">
           <h2 className="text-xl font-semibold text-gray-800">Agendamento de Manutenção</h2>
-          <div className="flex space-x-2">
-            <button
-              onClick={() => setView('month')}
-              className={`px-3 py-1 rounded ${view === 'month' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
-            >
-              Mês
-            </button>
-            <button
-              onClick={() => setView('week')}
-              className={`px-3 py-1 rounded ${view === 'week' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
-            >
-              Semana
-            </button>
-            <button
-              onClick={() => setView('day')}
-              className={`px-3 py-1 rounded ${view === 'day' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
-            >
-              Dia
-            </button>
-          </div>
+
         </div>
 
         <div className="mb-4">
@@ -665,7 +716,7 @@ function Teste() {
             events={events}
             view={view}
             views={['month', 'week', 'day']}
-            defaultView="week"
+            defaultView="month"
             step={15}
             timeslots={4}
             defaultDate={currentDate}
@@ -676,6 +727,7 @@ function Teste() {
             onView={(newView) => setView(newView as 'week' | 'day' | 'month')}
             eventPropGetter={eventStyleGetter}
             components={components}
+            onSelectEvent={handleSelectEvent}
             onEventDrop={onEventDrop}
             onSelectSlot={onSelectSlot}
             selectable
@@ -685,8 +737,86 @@ function Teste() {
         </DndProvider>
       </div>
 
-      {showModal && selectedService && (
+      {/* Modal de seleção de equipamento */}
+      {showEquipmentSelection && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h3 className="text-xl font-semibold mb-4">Selecione o Equipamento</h3>
+            <div className="space-y-2 max-h-96 overflow-y-auto">
+              {data.filter(servico => !servico.vistoriado && parseHoraTotal(servico.horasRestantes) > 0).map((servico, index) => (
+                <div 
+                  key={index} 
+                  className="border p-3 rounded-lg cursor-pointer hover:bg-gray-100"
+                  onClick={() => handleEquipmentSelection(servico)}
+                >
+                  <h4 className="font-medium">{servico.nomeEquipamento}</h4>
+                  <p>Tempo restante: {servico.horasRestantes}</p>
+                </div>
+              ))}
+            </div>
+            <div className="mt-4 flex justify-end">
+              <button
+                onClick={() => setShowEquipmentSelection(false)}
+                className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+
+{showModalChecklist && (
+  <div className="fixed w-1/2 m-auto inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="modal-content bg-red-500 p-10">
+      <h2 className="text-xl font-bold mb-4">Checklist de Serviços</h2>
+      <button 
+        onClick={() => setShowModalChecklist(false)}
+        className="mb-4 px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded"
+      >
+        Fechar
+      </button>
+
+      {loading ? (
+        <div className="text-center">Carregando checklist...</div>
+      ) : (
+        <>
+          {!equipamentoData || !equipamentoData.checkList ? (
+            <div className="text-red-500">Nenhum checklist disponível</div>
+          ) : (
+            // Acesso direto ao primeiro checklist (índice 0) e seus serviços
+            equipamentoData.checkList[0]?.servicos?.length > 0 ? (
+              <div className="checklist-section mb-6">
+                <h3 className="font-semibold mb-2">Checklist</h3>
+                {equipamentoData.checkList[0].servicos.map((servico, index) => (
+                  <div key={`servico-${index}`} className="service-item mb-2">
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={servico?.vistoriado || false}
+                        onChange={(e) => handleCheckboxChange(0, index, e.target.checked)}
+                        className="h-4 w-4"
+                      />
+                      <span className={servico?.vistoriado ? "line-through" : ""}>
+                        {servico?.servicos || `Serviço ${index + 1}`}
+                      </span>
+                    </label>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-gray-500">Nenhum serviço neste checklist</div>
+            )
+          )}
+        </>
+      )}
+    </div>
+  </div>
+)}
+
+      {showModal && selectedService && (
+        <div  className=" fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <h3 className="text-xl font-semibold mb-4">Agendar Serviço</h3>
             
