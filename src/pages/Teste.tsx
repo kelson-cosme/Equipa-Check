@@ -731,14 +731,14 @@ function Teste() {
             max={new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 18, 0, 0)}
             onNavigate={(newDate) => setCurrentDate(newDate)}
             onView={(newView) => setView(newView as 'week' | 'day' | 'month')}
-            eventPropGetter={eventStyleGetter}
+            eventPropGetter={eventStyleGetter as any}
             components={components}
             onSelectEvent={handleSelectEvent}
             onEventDrop={onEventDrop}
             onSelectSlot={onSelectSlot}
             selectable
             draggableAccessor={() => true}
-            style={{ height: "60vh" }}
+            style={{ height: "90vh" }}
           />
         </DndProvider>
       </div>

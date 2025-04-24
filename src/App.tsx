@@ -31,7 +31,7 @@ function App() {
   return (
     <section className='flex'>
       <BrowserRouter>
-        <div className='bg-gray-100 w-[37vh] h-screen p-3'>
+        <div className='bg-gray-100 w-[37vh] h-screen p-3 sticky top-0'>
           <h1 className='text-xl font-semibold'>Equipa-Check</h1>
           <p className='text-[2vh] mb-[5vh]'>Sistema de Vistorias</p>
 
