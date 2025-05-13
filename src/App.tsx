@@ -43,7 +43,7 @@ function App() {
             </li>
             
             <li>
-              <NavLink to="/adicionar-equipamentos" icon={Tractor}>
+              <NavLink to="/equipamentos" icon={Tractor}>
                 Equipamentos
               </NavLink>
             </li>
@@ -55,7 +55,7 @@ function App() {
             </li>
 
             <li>
-              <NavLink to="/concluidos" icon={VerifiedIcon}>
+              <NavLink to="/vistoria-concluida" icon={VerifiedIcon}>
                 Vistorias Concluídas
               </NavLink>
             </li>
